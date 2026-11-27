@@ -1,0 +1,450 @@
+﻿<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#123f30">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>PasarKu · Retribusi Pasar Digital</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root{--green:#17734e;--dark:#123f30;--ink:#182b25;--muted:#687770;--paper:#f4f7f3;--line:#dfe7e0;--white:#fff}
+    *{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.45 system-ui,Segoe UI,sans-serif}
+    button,input,select{font:inherit} button{cursor:pointer}
+    .hide{display:none!important}
+    .login-wrap{min-height:100dvh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,#123f30,#1b5e43)}
+    .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 4px 18px rgba(0,0,0,.04)}
+    .login-card{width:min(420px,100%);padding:28px}
+    .label{display:block;font-size:13px;font-weight:700;margin:14px 0 6px}
+    .field{width:100%;height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:#fff}
+    .btn{border:0;border-radius:10px;background:var(--green);color:#fff;padding:10px 16px;font-weight:700}
+    .btn.sec{background:#eaf4ed;color:var(--green)}
+    .btn.full{width:100%;margin-top:18px;height:46px}
+    .topbar{background:#123f30;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;background:#fff;padding:10px 20px;border-bottom:1px solid var(--line)}
+    .nav button{border:0;background:transparent;padding:8px 14px;border-radius:8px;font-weight:600;color:var(--muted)}
+    .nav button.active{background:#eaf4ed;color:var(--green)}
+    .container{max-width:1180px;margin:20px auto;padding:0 16px}
+    .grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:18px}
+    .stat-title{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase}
+    .stat-val{font-size:24px;font-weight:800;margin-top:6px;color:var(--dark)}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}
+    th{background:#f8faf8;font-size:12px;text-transform:uppercase;color:var(--muted)}
+    .badge{padding:3px 9px;border-radius:99px;font-size:12px;font-weight:700}
+    .lunas{background:#dcfce7;color:#166534} .belum{background:#fef3c7;color:#92400e}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:16px;z-index:50}
+    .modal-box{background:#fff;border-radius:14px;padding:22px;width:min(460px,100%);max-height:90dvh;overflow:auto}
+  </style>
+</head>
+<body>
+  <div id="view-login" class="login-wrap">
+    <form id="form-login" class="card login-card">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:12px;color:var(--green);font-weight:700">UPT PASAR UMUM KACANGAN</div>
+        <h2 style="margin:4px 0">PasarKu Digital</h2>
+        <div style="font-size:13px;color:var(--muted)">Sistem Retribusi & QR Code Pedagang</div>
+      </div>
+      <label class="label">Username Petugas</label>
+      <input class="field" id="login-user" placeholder="Contoh: Kepala UPT Pasar / Sholihin" required>
+      <label class="label">Password</label>
+      <input class="field" id="login-pass" type="password" placeholder="Masukkan password" required>
+      <div id="login-err" style="color:#b42318;font-size:13px;margin-top:10px"></div>
+      <button class="btn full" type="submit">Masuk Aplikasi</button>
+      <p style="font-size:12px;color:var(--muted);margin-top:14px;text-align:center">
+        Login awal sebelum impor database: <b>Kepala UPT Pasar</b> / <b>admin#123</b>
+      </p>
+    </form>
+  </div>
+
+  <div id="view-app" class="hide">
+    <header class="topbar">
+      <div>
+        <strong>PasarKu · UPT Pasar Umum Kacangan</strong>
+        <div style="font-size:12px;opacity:.85" id="user-info"></div>
+      </div>
+      <button class="btn sec" id="btn-logout">Keluar</button>
+    </header>
+    <nav class="nav" id="main-nav">
+      <button data-tab="ringkasan" class="active">Ringkasan</button>
+      <button data-tab="pedagang">Data Pedagang & QR</button>
+      <button data-tab="scan">Scan QR & Bayar</button>
+      <button data-tab="transaksi">Riwayat Transaksi</button>
+      <button data-tab="admin" id="nav-admin">Impor & Pengaturan</button>
+    </nav>
+
+    <main class="container">
+      <section id="tab-ringkasan">
+        <div class="grid-4" id="summary-cards"></div>
+        <div class="card">
+          <h3 style="margin-top:0">Rekap Per Pasar</h3>
+          <table>
+            <thead><tr><th>Pasar</th><th>Jumlah Lapak</th><th>Total Tagihan</th><th>Terkumpul</th><th>Sisa Piutang</th></tr></thead>
+            <tbody id="market-summary-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tab-pedagang" class="hide">
+        <div class="card">
+          <div class="row">
+            <input class="field" style="max-width:300px" id="search-pedagang" placeholder="Cari nama, NPWRD, blok, atau los...">
+            <select class="field" style="max-width:180px" id="filter-pasar">
+              <option value="">Semua Pasar</option>
+              <option value="Kacangan">Kacangan</option>
+              <option value="Kemusu">Kemusu</option>
+              <option value="Kunti">Kunti</option>
+            </select>
+            <select class="field" style="max-width:160px" id="filter-status">
+              <option value="">Semua Status</option>
+              <option value="LUNAS">LUNAS</option>
+              <option value="BELUM">BELUM</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr><th>NPWRD</th><th>Nama</th><th>Pasar / Lapak</th><th>Tagihan</th><th>Terbayar</th><th>Status</th><th>Aksi</th></tr>
+              </thead>
+              <tbody id="pedagang-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-scan" class="hide">
+        <div class="card" style="max-width:560px;margin:auto">
+          <h3 style="margin-top:0">Scan QR Code Lapak / Pedagang</h3>
+          <div id="qr-reader" style="width:100%;margin-bottom:14px"></div>
+          <div class="row">
+            <button class="btn" id="btn-start-scan" type="button">Aktifkan Kamera QR</button>
+            <button class="btn sec" id="btn-stop-scan" type="button">Matikan Kamera</button>
+          </div>
+          <label class="label">Atau Input Manual Kode QR / NPWRD</label>
+          <div class="row">
+            <input class="field" style="flex:1" id="manual-qr" placeholder="Contoh: 090320651314996-KACANGAN-KIOS---74">
+            <button class="btn" id="btn-find-qr" type="button">Cari</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-transaksi" class="hide">
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <h3 style="margin:0">Riwayat Penerimaan Retribusi</h3>
+            <button class="btn sec" id="btn-export-csv">Unduh CSV Transaksi</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr><th>Tanggal</th><th>NPWRD</th><th>Nama Pedagang</th><th>Pasar</th><th>Angsuran</th><th>Nominal</th><th>Petugas</th></tr>
+              </thead>
+              <tbody id="transaksi-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-admin" class="hide">
+        <div class="card" style="max-width:640px">
+          <h3 style="margin-top:0">Sinkronisasi Database Firestore</h3>
+          <p>Unggah file <code>firestore_seed.json</code> hasil generate dari Excel untuk mengisi data 826 pedagang dan 7 akun petugas ke Firebase Firestore.</p>
+          <input type="file" id="file-seed" accept=".json" class="field" style="padding-top:8px">
+          <div class="row" style="margin-top:14px">
+            <button class="btn" id="btn-import-seed" type="button">Impor JSON ke Firestore</button>
+            <button class="btn sec" id="btn-backup-json" type="button">Backup Data Firestore (JSON)</button>
+          </div>
+          <div id="import-status" style="margin-top:12px;font-weight:600;color:var(--green)"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hide">
+    <div class="modal-box" id="modal-content"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import {
+      getFirestore, collection, doc, getDocs, setDoc, addDoc, updateDoc, writeBatch
+    } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentUser = JSON.parse(localStorage.getItem("pk_user") || "null");
+    let pedagangList = [];
+    let transaksiList = [];
+    let petugasList = [];
+    let html5Qr = null;
+
+    const rp = n => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n || 0);
+    const $ = s => document.querySelector(s);
+
+    async function loadAllData() {
+      const [snapPed, snapTrx, snapPet] = await Promise.all([
+        getDocs(collection(db, "pedagang")),
+        getDocs(collection(db, "transaksi")),
+        getDocs(collection(db, "petugas"))
+      ]);
+      pedagangList = snapPed.docs.map(d => ({ id: d.id, ...d.data() }));
+      transaksiList = snapTrx.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.tanggal_bayar || "").localeCompare(a.tanggal_bayar || ""));
+      petugasList = snapPet.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderAll();
+    }
+
+    function renderAll() {
+      renderSummary();
+      renderPedagang();
+      renderTransaksi();
+    }
+
+    function renderSummary() {
+      const totalTagihan = pedagangList.reduce((s, p) => s + Number(p.tagihan || 0), 0);
+      const totalBayar = pedagangList.reduce((s, p) => s + Number(p.paid || 0), 0);
+      const lunasCount = pedagangList.filter(p => (p.paid || 0) >= (p.tagihan || 0) && (p.tagihan || 0) > 0).length;
+
+      $("#summary-cards").innerHTML = `
+        <div class="card"><div class="stat-title">Total Pedagang</div><div class="stat-val">${pedagangList.length}</div></div>
+        <div class="card"><div class="stat-title">Target Tagihan</div><div class="stat-val">${rp(totalTagihan)}</div></div>
+        <div class="card"><div class="stat-title">Terkumpul</div><div class="stat-val" style="color:#17734e">${rp(totalBayar)}</div></div>
+        <div class="card"><div class="stat-title">Lapak Lunas</div><div class="stat-val">${lunasCount} / ${pedagangList.length}</div></div>
+      `;
+
+      const markets = ["Kacangan", "Kemusu", "Kunti"];
+      $("#market-summary-body").innerHTML = markets.map(m => {
+        const rows = pedagangList.filter(p => (p.pasar || "").toLowerCase() === m.toLowerCase());
+        const t = rows.reduce((s, p) => s + Number(p.tagihan || 0), 0);
+        const b = rows.reduce((s, p) => s + Number(p.paid || 0), 0);
+        return `<tr><td><b>${m}</b></td><td>${rows.length}</td><td>${rp(t)}</td><td>${rp(b)}</td><td>${rp(Math.max(0, t - b))}</td></tr>`;
+      }).join("");
+    }
+
+    function renderPedagang() {
+      const q = ($("#search-pedagang").value || "").toLowerCase().trim();
+      const pasar = $("#filter-pasar").value;
+      const status = $("#filter-status").value;
+
+      const filtered = pedagangList.filter(p => {
+        const st = (p.paid || 0) >= (p.tagihan || 0) ? "LUNAS" : "BELUM";
+        if (pasar && p.pasar !== pasar) return false;
+        if (status && st !== status) return false;
+        if (q && !`${p.nama} ${p.npwrd} ${p.blok} ${p.los} ${p.qr_code}`.toLowerCase().includes(q)) return false;
+        return true;
+      }).slice(0, 200);
+
+      $("#pedagang-body").innerHTML = filtered.map(p => {
+        const st = (p.paid || 0) >= (p.tagihan || 0) ? "LUNAS" : "BELUM";
+        return `
+          <tr>
+            <td>${p.npwrd}</td>
+            <td><b>${p.nama}</b><br><small style="color:var(--muted)">${p.alamat || ""}</small></td>
+            <td>${p.pasar} · ${p.tipe} (${p.blok}/${p.los})</td>
+            <td>${rp(p.tagihan)}</td>
+            <td>${rp(p.paid || 0)}</td>
+            <td><span class="badge ${st === "LUNAS" ? "lunas" : "belum"}">${st}</span></td>
+            <td>
+              <button class="btn sec" onclick="window.openQR('${p.id}')">QR</button>
+              <button class="btn" onclick="window.openPay('${p.id}')">Bayar</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderTransaksi() {
+      $("#transaksi-body").innerHTML = transaksiList.slice(0, 300).map(t => `
+        <tr>
+          <td>${t.tanggal_bayar}</td>
+          <td>${t.npwrd}</td>
+          <td><b>${t.nama}</b></td>
+          <td>${t.pasar}</td>
+          <td>Ke-${t.angsuran_ke}</td>
+          <td><b>${rp(t.nominal)}</b></td>
+          <td>${t.petugas}</td>
+        </tr>
+      `).join("");
+    }
+
+    window.openQR = id => {
+      const p = pedagangList.find(x => x.id === id);
+      if (!p) return;
+      $("#modal-content").innerHTML = `
+        <h3 style="margin-top:0">${p.nama}</h3>
+        <p style="font-size:13px;color:var(--muted)">NPWRD: ${p.npwrd} · ${p.pasar} (${p.tipe} ${p.blok}/${p.los})</p>
+        <div id="qr-box" style="display:grid;place-items:center;margin:18px 0"></div>
+        <div style="text-align:center;font-family:monospace;font-size:12px;margin-bottom:14px">${p.qr_code}</div>
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn sec" onclick="window.print()">Cetak</button>
+          <button class="btn" onclick="document.querySelector('#modal').classList.add('hide')">Tutup</button>
+        </div>
+      `;
+      $("#modal").classList.remove("hide");
+      new QRCode($("#qr-box"), { text: p.qr_code, width: 210, height: 210 });
+    };
+
+    window.openPay = id => {
+      const p = pedagangList.find(x => x.id === id);
+      if (!p) return;
+      const sisa = Math.max(0, Number(p.tagihan || 0) - Number(p.paid || 0));
+      const nextKe = Number(p.installments || 0) + 1;
+      $("#modal-content").innerHTML = `
+        <h3 style="margin-top:0">Catat Pembayaran Retribusi</h3>
+        <p><b>${p.nama}</b><br><small>NPWRD: ${p.npwrd} | Sisa Tagihan: <b>${rp(sisa)}</b></small></p>
+        <form id="form-pay">
+          <label class="label">Angsuran Ke-</label>
+          <input class="field" type="number" id="pay-ke" value="${nextKe}" min="1" required>
+          <label class="label">Nominal Bayar (Rp)</label>
+          <input class="field" type="number" id="pay-nominal" value="${sisa}" min="1000" required>
+          <label class="label">Tanggal Bayar</label>
+          <input class="field" type="date" id="pay-date" value="${new Date().toISOString().slice(0, 10)}" required>
+          <div class="row" style="justify-content:flex-end;margin-top:18px">
+            <button class="btn sec" type="button" onclick="document.querySelector('#modal').classList.add('hide')">Batal</button>
+            <button class="btn" type="submit">Simpan & Terbitkan Nota</button>
+          </div>
+        </form>
+      `;
+      $("#modal").classList.remove("hide");
+      $("#form-pay").onsubmit = async e => {
+        e.preventDefault();
+        const nominal = Number($("#pay-nominal").value);
+        const ke = Number($("#pay-ke").value);
+        const tgl = $("#pay-date").value;
+        const newPaid = Number(p.paid || 0) + nominal;
+        const newStatus = newPaid >= Number(p.tagihan || 0) ? "LUNAS" : "BELUM";
+
+        await addDoc(collection(db, "transaksi"), {
+          pedagang_id: p.id,
+          npwrd: p.npwrd,
+          nama: p.nama,
+          pasar: p.pasar,
+          angsuran_ke: ke,
+          nominal,
+          tanggal_bayar: tgl,
+          petugas: currentUser.username,
+          created_at: new Date().toISOString()
+        });
+
+        await updateDoc(doc(db, "pedagang", p.id), {
+          paid: newPaid,
+          installments: ke,
+          status: newStatus
+        });
+
+        $("#modal").classList.add("hide");
+        await loadAllData();
+        alert(`Transaksi Rp ${nominal.toLocaleString("id-ID")} untuk ${p.nama} berhasil disimpan!`);
+      };
+    };
+
+    function handleQrLookup(code) {
+      const clean = String(code || "").trim().toUpperCase();
+      const found = pedagangList.find(p => (p.qr_code || "").toUpperCase() === clean || (p.npwrd || "").toUpperCase() === clean);
+      if (!found) return alert("Data pedagang tidak ditemukan untuk kode: " + clean);
+      window.openPay(found.id);
+    }
+
+    $("#btn-find-qr").onclick = () => handleQrLookup($("#manual-qr").value);
+
+    $("#btn-start-scan").onclick = () => {
+      html5Qr = new Html5Qrcode("qr-reader");
+      html5Qr.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, text => {
+        html5Qr.stop().catch(() => {});
+        handleQrLookup(text);
+      }).catch(err => alert("Kamera tidak dapat diakses: " + err));
+    };
+    $("#btn-stop-scan").onclick = () => { if (html5Qr) html5Qr.stop().catch(() => {}); };
+
+    $("#btn-import-seed").onclick = async () => {
+      const file = $("#file-seed").files[0];
+      if (!file) return alert("Pilih file firestore_seed.json terlebih dahulu.");
+      const data = JSON.parse(await file.text());
+      $("#import-status").textContent = "Mengimpor data ke Firestore, mohon tunggu...";
+
+      const chunks = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
+      for (const part of chunks(data.pedagang || [], 400)) {
+        const batch = writeBatch(db);
+        part.forEach(item => batch.set(doc(db, "pedagang", item.id), item));
+        await batch.commit();
+      }
+      for (const pet of (data.petugas || [])) {
+        await setDoc(doc(db, "petugas", pet.id), pet);
+      }
+      await loadAllData();
+      $("#import-status").textContent = `Selesai! ${(data.pedagang || []).length} pedagang & ${(data.petugas || []).length} petugas masuk ke Firestore.`;
+    };
+
+    $("#btn-backup-json").onclick = () => {
+      const blob = new Blob([JSON.stringify({ pedagang: pedagangList, transaksi: transaksiList, petugas: petugasList }, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `backup_pasarku_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    };
+
+    $("#btn-export-csv").onclick = () => {
+      const header = "Tanggal,NPWRD,Nama,Pasar,Angsuran,Nominal,Petugas\n";
+      const rows = transaksiList.map(t => `"${t.tanggal_bayar}","${t.npwrd}","${t.nama}","${t.pasar}",${t.angsuran_ke},${t.nominal},"${t.petugas}"`).join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([header + rows], { type: "text/csv" }));
+      a.download = `transaksi_pasarku_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    };
+
+    document.querySelectorAll("#main-nav button").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll("#main-nav button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        ["ringkasan", "pedagang", "scan", "transaksi", "admin"].forEach(t => $("#tab-" + t).classList.add("hide"));
+        $("#tab-" + btn.dataset.tab).classList.remove("hide");
+      };
+    });
+
+    $("#search-pedagang").oninput = renderPedagang;
+    $("#filter-pasar").onchange = renderPedagang;
+    $("#filter-status").onchange = renderPedagang;
+
+    $("#form-login").onsubmit = async e => {
+      e.preventDefault();
+      const u = $("#login-user").value.trim();
+      const p = $("#login-pass").value.trim();
+      try {
+        const snap = await getDocs(collection(db, "petugas"));
+        const users = snap.docs.map(d => d.data());
+        let match = users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p && x.aktif !== false);
+        if (!match && users.length === 0 && u.toLowerCase() === "kepala upt pasar" && p === "admin#123") {
+          match = { username: "Kepala UPT Pasar", peran: "admin", aktif: true };
+        }
+        if (!match) {
+          $("#login-err").textContent = "Username atau password salah.";
+          return;
+        }
+        currentUser = match;
+        localStorage.setItem("pk_user", JSON.stringify(match));
+        startApp();
+      } catch (err) {
+        $("#login-err").textContent = "Gagal terhubung ke Firebase: " + err.message;
+      }
+    };
+
+    $("#btn-logout").onclick = () => {
+      localStorage.removeItem("pk_user");
+      location.reload();
+    };
+
+    async function startApp() {
+      $("#view-login").classList.add("hide");
+      $("#view-app").classList.remove("hide");
+      $("#user-info").textContent = `Login sebagai: ${currentUser.username} (${currentUser.peran.toUpperCase()})`;
+      if (currentUser.peran !== "admin") $("#nav-admin").classList.add("hide");
+      await loadAllData();
+    }
+
+    if (currentUser) startApp();
+  </script>
+</body>
+</html>

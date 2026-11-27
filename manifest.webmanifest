@@ -1,0 +1,9 @@
+﻿{
+  "name": "PasarKu · Retribusi Pasar",
+  "short_name": "PasarKu",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f3",
+  "theme_color": "#123f30",
+  "icons": []
+}
